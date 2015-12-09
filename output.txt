@@ -1,0 +1,21 @@
+db.CS457.sum(Age)
+5256
+
+db.CS457.avg(Age)
+54
+
+db.CS457.avg(Salary)
+128542
+
+db.cs457.query(Salary > 190000,Age+ID+Salary)
+ID: 110 Salary: 199500 
+ID: 154 Salary: 195100 
+ID: 198 Salary: 195500 
+ID: 210 Salary: 190300 
+ID: 249 Salary: 199999 
+
+db.cs457.query(Salary < 50000,Age+ID+Salary)
+ID: 172 Salary: 49900 
+ID: 176 Salary: 43900 
+ID: 211 Salary: 47600 
+ID: 237 Salary: 42500 
