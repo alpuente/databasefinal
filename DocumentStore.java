@@ -23,12 +23,11 @@ public class DocumentStore {
     public static ArrayList<Document> documents; // keep track of all the documents that have been made
 
     public static ArrayList fileToJSON (String file) {
-        //System.out.println("herrree");
         ArrayList<JSONObject> objects = new ArrayList<JSONObject>();
         try {
             BufferedReader br = new BufferedReader(new FileReader(file));
             String line;
-
+            int idNum = 0;
             while ((line = br.readLine()) != null) {
                 // process the line.
                 String[] items = line.split("\\s+");
@@ -36,7 +35,6 @@ public class DocumentStore {
 
                 for (int i = 0; i < items.length; i += 2) {
                     String id = items[i].substring(0, items[i].length()-1); // strip semicolon
-
                     String value = items[i+1];
                     try {
                         obj.put(id, value);
@@ -44,8 +42,15 @@ public class DocumentStore {
                         e.printStackTrace();
                     }
                 }
-                //System.out.println(obj.toString());
+
+                try {
+                    String id = "ID";
+                    String idN = "" + idNum;
+                    obj.put(id, idN);
+                } catch(JSONException e) {}
+
                 objects.add(obj);
+                idNum++;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -62,6 +67,63 @@ public class DocumentStore {
         }
         return null;
     }
+
+    /*public static ArrayList subQuery(String[] condition, ArrayList<JSONObject> objects) {
+        // condition should always be array of length 3
+        ArrayList<JSONObject> result = new ArrayList<JSONObject>();
+        if (condition[1].contentEquals("<")) {
+
+            for (int i = 0; i < objects.size(); i++) {
+                JSONObject currentObject = objects.get(i);
+                try {
+                    int x = Integer.parseInt(currentObject.getString(condition[0]));
+                    //System.out.println("condition[2]: " + condition[2]);
+                    //System.out.println("int at condition[0] " + currentObject.getInt(condition[0]));
+                    if (currentObject.getInt(condition[0]) < x) {
+                        result.add(currentObject);
+                    }
+                } catch(JSONException e) {
+                    //System.out.println("exceptional");
+                }
+            }
+
+        } else if (condition[1].contentEquals(">")) {
+
+            for (int i = 0; i < objects.size(); i++) {
+                JSONObject currentObject = objects.get(i);
+                try {
+                    //System.out.println("condition[2]: " + condition[2]);
+                    //System.out.println("int at condition[0] " + currentObject.getInt(condition[0]));
+                    int x = Integer.parseInt(currentObject.getString(condition[0]));
+                    if (currentObject.getInt(condition[0]) > x) {
+                        result.add(currentObject);
+                    }
+                } catch(JSONException e) {
+                    //System.out.println("exceptional");
+                }
+            }
+
+        } else if (condition[1].contentEquals("=")) {
+            for (int i = 0; i < objects.size(); i++) {
+                JSONObject currentObject = objects.get(i);
+                try {
+                    int x = Integer.parseInt(currentObject.getString(condition[2]));
+
+                    if (x == currentObject.getInt(condition[0])) {
+                        //System.out.println(currentObject.toString());
+                        result.add(currentObject);
+                    }
+                } catch(JSONException e) {
+                    //System.out.println("exceptional");
+                }
+            }
+        } else {
+            System.out.println("Wow that isn't a valid query operator. Cool.");
+            return null;
+        }
+        return result;
+    }*/
+
 
     public static ArrayList subQuery(String[] condition, ArrayList<JSONObject> objects) {
         // condition should always be array of length 3
@@ -123,13 +185,10 @@ public class DocumentStore {
         return result;
     }
 
+
     public static void query(String condition, String returnVals, ArrayList<JSONObject> objects) {
 
-        String[] conditionArgs = condition.split("&|and"); // split the entire set of conditions into individual conditional
-        //System.out.println("2nd condition: " + conditionArgs[0]);
-        //System.out.println("condition: " + condition);
-        //System.out.println(conditionArgs.length);
-        //System.out.println("r vals " + returnVals);
+        String[] conditionArgs = condition.split("&|and"); // split the entire set of conditions into individual conditionals
         ArrayList<String[]> conditions = new ArrayList<String[]>();
         for (int j = 0; j < conditionArgs.length; j++) {
             conditionArgs[j] = conditionArgs[j].trim();
@@ -142,10 +201,9 @@ public class DocumentStore {
                 result = subQuery(conditions.get(i), result);
             }
         } else {
-            //System.out.println("condition length " + condition.split(" ").length);
             String[] qArgs = condition.split(" ");
             if (qArgs.length > 1) {
-                result = subQuery(condition.split(" "), objects);
+                result = subQuery(qArgs, objects);
             } else {
                 result = objects;
             }
@@ -153,7 +211,6 @@ public class DocumentStore {
 
         if (result != null) {
             for (int i = 0; i < result.size(); i++) {
-                //System.out.println("DLLDLDLLD");
                 JSONObject jo = result.get(i);
                 String queryOutput = "";
                 if (!returnVals.contentEquals("")) {
@@ -161,15 +218,27 @@ public class DocumentStore {
                     for (int j = 0; j < fields.length; j++) {
                         try {
                             queryOutput += fields[j].trim() + ": " + jo.getString(fields[j].trim()) + " ";
-                            //System.out.print(fields[j].trim() + " " + jo.getString(fields[j].trim() + " "));
                         } catch (JSONException je) {
 
                         }
                     }
-                    System.out.println(queryOutput);
-                    System.out.print("\n");
+                    if (!queryOutput.contentEquals("")) {
+                        System.out.println(queryOutput);
+                    }
                 } else {
                     System.out.println(jo.toString());
+                    String object = jo.toString(); // this is probably a terrible name for a string
+                    String strippedObject = "";
+                    for (char c : object.toCharArray()) {
+                        if ( !(c == '"' || c == '{' || c == '}')) {
+                            if (c == ',') {
+                                strippedObject += " ";
+                            } else {
+                                strippedObject += c;
+                            }
+                        }
+                    }
+                    System.out.println(strippedObject);
                 }
             }
         }
@@ -188,38 +257,37 @@ public class DocumentStore {
                 try {
                     int x = Integer.parseInt(currentObject.getString(param));
                     sum += x;
+                    noneFound = false;
                 } catch(JSONException e) {
                     //System.out.println("exceptional");
                 }
             }
-            System.out.println(sum);
+            if (!noneFound) {
+                System.out.println(sum);
+            }
         } else if (function.contentEquals("avg")) {
 
             for (int i = 0; i < objects.size(); i++) {
-                //System.out.println("oh")
                 JSONObject currentObject = objects.get(i);
                 try {
                     int x = Integer.parseInt(currentObject.getString(param));
-                    //System.out.println("x: " + x);
+                    noneFound = false;
                     sum += x;
                     count += 1;
-                    //System.out.println(x);
-                    //System.out.println("condition[2]: " + condition[2]);
                 } catch(JSONException e) {
                     //System.out.println("exceptional");
                 }
             }
-            if (count != 0) {
+            if (count != 0 && !noneFound) {
                 average = sum / count;
-                System.out.println("avg: " + average);
+                System.out.println(average);
             }
         } else if (function.contentEquals("max")) {
             for (int i = 0; i < objects.size(); i++) {
                 JSONObject currentObject = objects.get(i);
                 try {
                     int x = Integer.parseInt(currentObject.getString(param));
-                    //System.out.println("x: " + x);
-
+                    noneFound = false;
                     if (x > max) {
                         max = x;
                     }
@@ -228,7 +296,9 @@ public class DocumentStore {
                     //System.out.println("exceptional");
                 }
             }
-            System.out.println(max);
+            if (!noneFound) {
+                System.out.println(max);
+            }
         } else {
             System.out.println("Not a valid aggregate function");
         }
@@ -284,24 +354,37 @@ public class DocumentStore {
                     String fname = command[1] + ".txt";
                     objects = fileToJSON(fname);
                 }
-
                 if (command[2].contains("query")) {
-                    // db.CS457.query(Manager = 555, SNum+Dept)
                     String[] queryVals = command[2].split("\\(|\\)|,");
                     if (queryVals.length > 2) {
                         if (queryVals[1].contentEquals("")) {
                             query("", queryVals[2], objects);
-                        } else {
+                        } else if (queryVals[2].contentEquals("")) {
+                            query(queryVals[1], "", objects);
+                        }
+                        else {
                             query(queryVals[1], queryVals[2], objects);
                         }
                     } else {
-                        query(queryVals[1], "", objects);
+                        for (int i = 0; i < objects.size(); i++) {
+                            String object = objects.get(i).toString(); // this is probably a terrible name for a string
+                            String strippedObject = "";
+                            for (char c : object.toCharArray()) {
+                                if ( !(c == '"' || c == '{' || c == '}')) {
+                                    if (c == ',') {
+                                        strippedObject += " ";
+                                    } else {
+                                        strippedObject += c;
+                                    }
+                                }
+                            }
+                            System.out.println(strippedObject);
+                        }
                     }
                 } else if (command[2].contains("sum") || command[2].contains("avg") || command[2].contains("max")) {
                     String[] queryVals = command[2].split("\\(|\\)|,");
                     aggregate(queryVals[0], queryVals[1], objects);
                 } else if (command[2].contains("cartprod")){
-                    System.out.println("cartesian product");
                     String[] queryVals = command[2].split("\\(|\\)|,");
                     cartesianProduct(queryVals[1],queryVals[2], objects);
                 } else {
